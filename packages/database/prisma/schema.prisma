@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  phoneNumber   String    @unique                // Identifiant principal
+  email         String?   @unique
+  fullName      String
+  pinHash       String                           // PIN 6 chiffres — bcrypt
+  profilePhoto  String?
+  kycStatus     KycStatus @default(PENDING)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  sessions      Session[]
+  account       Account?
+  notifications Notification[]
+  otpCodes      OtpCode[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  deviceInfo   Json?                             // { os, model, appVersion }
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String                               // Hash du code OTP
+  purpose   OtpPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otp_codes")
+}
+
+// ─────────────────────────────────────────────
+// ACCOUNTS & WALLETS
+// ─────────────────────────────────────────────
+
+model Account {
+  id            String       @id @default(uuid())
+  userId        String       @unique
+  accountNumber String       @unique             // MS-2025-XXXXXX
+  accountType   AccountType  @default(PERSONAL)
+  status        AccountStatus @default(ACTIVE)
+  createdAt     DateTime     @default(now())
+
+  user          User         @relation(fields: [userId], references: [id])
+  wallets       Wallet[]
+  virtualCards  VirtualCard[]
+
+  @@map("accounts")
+}
+
+model Wallet {
+  id            String       @id @default(uuid())
+  accountId     String
+  provider      WalletProvider
+  providerPhone String?                          // Numéro MTN/Orange lié
+  balance       Decimal      @default(0) @db.Decimal(15, 2)
+  currency      String       @default("XAF")
+  isPrimary     Boolean      @default(false)
+  updatedAt     DateTime     @updatedAt
+
+  account            Account      @relation(fields: [accountId], references: [id])
+  sentTransactions   Transaction[] @relation("SenderWallet")
+  receivedTransactions Transaction[] @relation("ReceiverWallet")
+
+  @@map("wallets")
+}
+
+// ─────────────────────────────────────────────
+// TRANSACTIONS
+// ─────────────────────────────────────────────
+
+model Transaction {
+  id          String            @id @default(uuid())
+  reference   String            @unique          // TXN-20251217-XXXXX
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+  amount      Decimal           @db.Decimal(15, 2)
+  fee         Decimal           @default(0) @db.Decimal(15, 2)
+  currency    String            @default("XAF")
+  description String?
+
+  senderWalletId   String?
+  receiverWalletId String?
+
+  // Fournisseur externe
+  provider    ExternalProvider?
+  providerRef String?                            // Référence MTN/Orange/AngaraPay
+
+  // Snapshot des soldes (audit immuable)
+  senderBalanceBefore   Decimal? @db.Decimal(15, 2)
+  senderBalanceAfter    Decimal? @db.Decimal(15, 2)
+  receiverBalanceBefore Decimal? @db.Decimal(15, 2)
+  receiverBalanceAfter  Decimal? @db.Decimal(15, 2)
+
+  metadata    Json?                              // Données contextuelles libres
+  initiatedAt DateTime          @default(now())
+  completedAt DateTime?
+
+  // Idempotence — évite les doubles débits
+  idempotencyKey String?        @unique
+
+  senderWallet   Wallet? @relation("SenderWallet",   fields: [senderWalletId],   references: [id])
+  receiverWallet Wallet? @relation("ReceiverWallet", fields: [receiverWalletId], references: [id])
+
+  @@index([senderWalletId, initiatedAt(sort: Desc)])
+  @@index([receiverWalletId, initiatedAt(sort: Desc)])
+  @@index([status])
+  @@index([reference])
+  @@map("transactions")
+}
+
+// ─────────────────────────────────────────────
+// VIRTUAL CARDS
+// ─────────────────────────────────────────────
+
+model VirtualCard {
+  id           String     @id @default(uuid())
+  accountId    String
+  cardNumber   String                            // Chiffré AES-256
+  cardHolder   String
+  expiryMonth  Int
+  expiryYear   Int
+  cvvHash      String                            // Bcrypt — jamais en clair
+  network      CardNetwork @default(VISA)
+  spendingLimit Decimal?  @db.Decimal(15, 2)
+  status       CardStatus  @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  account      Account    @relation(fields: [accountId], references: [id])
+
+  @@map("virtual_cards")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  channel   NotificationChannel
+  isRead    Boolean          @default(false)
+  sentAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum KycStatus        { PENDING VERIFIED REJECTED }
+enum OtpPurpose       { PHONE_VERIFICATION TRANSACTION_CONFIRM PASSWORD_RESET }
+enum AccountType      { PERSONAL BUSINESS }
+enum AccountStatus    { ACTIVE FROZEN CLOSED }
+enum WalletProvider   { MTN ORANGE MONEYSWIFT }
+enum TransactionType  { DEPOSIT WITHDRAWAL TRANSFER PAYMENT }
+enum TransactionStatus { PENDING PROCESSING SUCCESS FAILED REVERSED }
+enum ExternalProvider { MTN_MOMO ORANGE_MONEY ANGARA_PAY }
+enum CardNetwork      { VISA MASTERCARD }
+enum CardStatus       { ACTIVE FROZEN EXPIRED CANCELLED }
+enum NotificationType { TRANSACTION SECURITY PROMOTION SYSTEM }
+enum NotificationChannel { PUSH SMS EMAIL IN_APP }
