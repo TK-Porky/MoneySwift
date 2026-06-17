@@ -1,0 +1,8 @@
+{
+  "name": "@moneyswift/swagger",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "swagger-jsdoc": "^6.2.8"
+  }
+}

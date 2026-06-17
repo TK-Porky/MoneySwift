@@ -140,7 +140,7 @@ class CardService {
   calculateLuhn(partial) {
     const digits = partial.split('').map(Number).reverse();
     const sum = digits.reduce((acc, d, i) => {
-      if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
+      if (i % 2 === 0) { d *= 2; if (d > 9) d -= 9; }
       return acc + d;
     }, 0);
     return (10 - (sum % 10)) % 10;

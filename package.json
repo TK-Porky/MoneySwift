@@ -11,7 +11,10 @@
   "scripts": {
     "dev":         "turbo run dev",
     "build":       "turbo run build",
-    "test":        "turbo run test",
+    "test":          "vitest run",
+    "test:watch":    "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui":       "vitest --ui",
     "lint":        "turbo run lint",
     "db:generate": "prisma generate --schema=packages/database/prisma/schema.prisma",
     "db:push":     "prisma db push --schema=packages/database/prisma/schema.prisma",
@@ -22,6 +25,11 @@
   },
   "devDependencies": {
     "turbo": "latest",
-    "prisma": "5.22.0"
+    "prisma": "5.22.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "vitest": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "supertest": "^7.0.0"
   }
 }

@@ -20,7 +20,8 @@ const FEE_GRID = {
 };
 
 function calculateFee(amount, type) {
-  const grid  = FEE_GRID[type] ?? FEE_GRID.TRANSFER;
+  const grid  = FEE_GRID[type];
+  if (!grid) return 0;
   const tier  = grid.find(t => amount <= t.max);
   if (!tier) return 0;
   return tier.fee !== undefined ? tier.fee : Math.ceil(amount * tier.rate);

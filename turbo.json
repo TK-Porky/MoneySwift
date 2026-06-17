@@ -14,7 +14,8 @@
       "cache": false
     },
     "test": {
-      "cache": false
+      "cache": false,
+      "outputs": ["coverage/**"]
     }
   }
 }

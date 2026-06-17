@@ -5,7 +5,9 @@
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
-        "dev": "nodemon index.js"
+        "dev": "nodemon index.js",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
         "@prisma/client": "^5.22.0",
@@ -14,9 +16,13 @@
         "@moneyswift/database": "workspace:*",
         "@moneyswift/errors": "workspace:*",
         "@moneyswift/middleware": "workspace:*",
-        "@moneyswift/utils": "workspace:*"
+        "@moneyswift/utils": "workspace:*",
+        "@moneyswift/swagger": "workspace:*",
+        "swagger-ui-express": "^5.0.1"
     },
     "devDependencies": {
-        "nodemon": "^2.0.7"
+        "nodemon": "^2.0.7",
+        "vitest": "^1.6.0",
+        "supertest": "^7.0.0"
     }
 }
