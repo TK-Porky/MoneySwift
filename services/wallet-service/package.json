@@ -1,23 +1,27 @@
 {
-    "name": "@moneyswift/wallet-service",
-    "version": "1.0.0",
-    "description": "Service for managing wallets in MoneySwift",
-    "main": "index.js",
-    "scripts": {
-        "start": "node index.js",
-        "dev": "nodemon index.js"
-    },
-    "dependencies": {
-        "@prisma/client": "^4.0.0",
-        "express": "^4.17.1",
-        "dotenv": "^10.0.0",
-        "@moneyswift/database": "workspace:*",
-        "@moneyswift/errors": "workspace:*",
-        "@moneyswift/middleware": "workspace:*",
-        "@moneyswift/utils": "workspace:*",
-        "@moneyswift/events": "workspace:*"
-    },
-    "devDependencies": {
-        "nodemon": "^2.0.7"
-    }
+  "name": "@moneyswift/wallet-service",
+  "version": "1.0.0",
+  "description": "Service for managing wallets in MoneySwift",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@moneyswift/database": "workspace:*",
+    "@moneyswift/errors": "workspace:*",
+    "@moneyswift/utils": "workspace:*",
+    "@moneyswift/events": "workspace:*",
+    "@prisma/client": "5.22.0",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.7"
+  }
 }

@@ -1,0 +1,150 @@
+version: '3.9'
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       moneyswift
+      POSTGRES_USER:     ms_user
+      POSTGRES_PASSWORD: ms_secret
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ms_user -d moneyswift"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 3
+
+  gateway:
+    build: ./apps/gateway
+    ports:
+      - "80:80"
+    depends_on:
+      auth-service:         { condition: service_started }
+      account-service:      { condition: service_started }
+      wallet-service:       { condition: service_started }
+      transaction-service:  { condition: service_started }
+      payment-service:      { condition: service_started }
+      card-service:         { condition: service_started }
+      notification-service: { condition: service_started }
+
+  # ── Microservices ───────────────────────────────────────
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    environment:
+      PORT:               3001
+      DATABASE_URL:       postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:          redis://redis:6379
+      JWT_SECRET:         ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  account-service:
+    build:
+      context: .
+      dockerfile: services/account-service/Dockerfile
+    environment:
+      PORT:         3002
+      DATABASE_URL: postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:    redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: services/wallet-service/Dockerfile
+    environment:
+      PORT:         3003
+      DATABASE_URL: postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:    redis://redis:6379
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: services/transaction-service/Dockerfile
+    environment:
+      PORT:                   3004
+      DATABASE_URL:           postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:              redis://redis:6379
+      MTN_MOMO_BASE_URL:      ${MTN_MOMO_BASE_URL}
+      MTN_MOMO_API_KEY:       ${MTN_MOMO_API_KEY}
+      ORANGE_MONEY_CLIENT_ID: ${ORANGE_MONEY_CLIENT_ID}
+      ORANGE_MONEY_SECRET:    ${ORANGE_MONEY_SECRET}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    environment:
+      PORT:                      3005
+      DATABASE_URL:              postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:                 redis://redis:6379
+      ANGARA_PAY_URL:            ${ANGARA_PAY_URL}
+      ANGARA_PAY_API_KEY:        ${ANGARA_PAY_API_KEY}
+      ANGARA_PAY_MERCHANT_ID:    ${ANGARA_PAY_MERCHANT_ID}
+      ANGARA_PAY_WEBHOOK_SECRET: ${ANGARA_PAY_WEBHOOK_SECRET}
+    depends_on:
+      postgres: { condition: service_healthy }  # ← manquait
+    restart: unless-stopped
+
+  card-service:
+    build:
+      context: .
+      dockerfile: services/card-service/Dockerfile
+    environment:
+      PORT:            3006
+      DATABASE_URL:    postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      ENCRYPTION_KEY:  ${ENCRYPTION_KEY}
+    depends_on:
+      postgres: { condition: service_healthy }  # ← manquait
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      PORT:           3007
+      DATABASE_URL:   postgresql://ms_user:ms_secret@postgres:5432/moneyswift
+      REDIS_URL:      redis://redis:6379
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+      SMS_API_KEY:    ${SMS_API_KEY}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:

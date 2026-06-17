@@ -2,20 +2,24 @@
 
 const prisma      = require('@moneyswift/database');
 const { calculateFee, generateRef } = require('@moneyswift/utils');
+const { MtnMomoClient, OrangeMoneyClient } = require('@moneyswift/integrations');
 const EventBus    = require('@moneyswift/events');
 const AppError    = require('@moneyswift/errors/AppError');
-const MtnMomoClient    = require('../integrations/mtn-momo.client');
-const OrangeMoneyClient = require('../integrations/orange-money.client');
 
 class TransactionService {
 
   // ── DÉPÔT : Opérateur mobile → Wallet MoneySwift ──────────
-  async deposit({ userId, provider, providerPhone, amount, pin }) {
+  async deposit({ userId, provider, providerPhone, amount, idempotencyKey }) {
     const wallet = await this.getUserPrimaryWallet(userId);
     const fee    = calculateFee(amount, 'DEPOSIT');
     const ref    = generateRef('DEP');
 
-    // 1. Créer la transaction en PENDING (avec idempotency key)
+    // Idempotence
+    if (idempotencyKey) {
+      const existing = await prisma.transaction.findUnique({ where: { idempotencyKey } });
+      if (existing) return existing;
+    }
+
     const txn = await prisma.transaction.create({
       data: {
         reference:        ref,
@@ -25,80 +29,55 @@ class TransactionService {
         fee,
         receiverWalletId: wallet.id,
         provider:         provider === 'MTN' ? 'MTN_MOMO' : 'ORANGE_MONEY',
-        idempotencyKey:   `${userId}-${ref}`,
+        idempotencyKey:   idempotencyKey || `${userId}-${ref}`,
         receiverBalanceBefore: wallet.balance,
       },
     });
 
-    // 2. Déclencher le paiement chez l'opérateur (asynchrone)
     this.processDepositAsync(txn, provider, providerPhone, amount, wallet);
 
     return { reference: ref, status: 'PENDING', message: 'Confirmez sur votre téléphone' };
   }
 
-  async processDepositAsync(txn, provider, providerPhone, amount, wallet) {
-    try {
-      // Appel MTN MoMo ou Orange Money
-      const client   = provider === 'MTN' ? MtnMomoClient : OrangeMoneyClient;
-      const response = await client.requestToPay({
-        amount,
-        phone:      providerPhone,
-        externalId: txn.reference,
-        note:       `Dépôt MoneySwift - ${txn.reference}`,
-      });
+  // ── RETRAIT : Wallet MoneySwift → Opérateur mobile ─────────
+  async withdraw({ userId, provider, providerPhone, amount }) {
+    const wallet = await this.getUserPrimaryWallet(userId);
+    const fee    = calculateFee(amount, 'WITHDRAWAL');
+    const ref    = generateRef('WTH');
 
-      // Polling du statut (max 3 tentatives × 10s)
-      const finalStatus = await this.pollProviderStatus(client, txn.reference, 3, 10_000);
-
-      if (finalStatus === 'SUCCESSFUL') {
-        await prisma.$transaction(async (tx) => {
-          // Créditer le wallet
-          await tx.wallet.update({
-            where: { id: wallet.id },
-            data:  { balance: { increment: amount } },
-          });
-
-          await tx.transaction.update({
-            where: { id: txn.id },
-            data: {
-              status:             'SUCCESS',
-              providerRef:        response.externalId,
-              completedAt:        new Date(),
-              receiverBalanceAfter: wallet.balance.toNumber() + amount,
-            },
-          });
-        });
-
-        // Notifier l'utilisateur
-        await EventBus.publish('transaction.success', {
-          userId: wallet.account?.userId,
-          txnId:  txn.id,
-          type:   'DEPOSIT',
-          amount,
-        });
-
-      } else {
-        await prisma.transaction.update({
-          where: { id: txn.id },
-          data:  { status: 'FAILED' },
-        });
-
-        await EventBus.publish('transaction.failed', { txnId: txn.id });
-      }
-
-    } catch (error) {
-      await prisma.transaction.update({
-        where: { id: txn.id },
-        data:  { status: 'FAILED', metadata: { error: error.message } },
-      });
+    if (wallet.balance.toNumber() < amount + fee) {
+      throw new AppError('Solde insuffisant', 400);
     }
+
+    const txn = await prisma.$transaction(async (tx) => {
+      // Débit immédiat (provisioning)
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data:  { balance: { decrement: amount + fee } },
+      });
+
+      return tx.transaction.create({
+        data: {
+          reference:        ref,
+          type:             'WITHDRAWAL',
+          status:           'PROCESSING',
+          amount,
+          fee,
+          senderWalletId:   wallet.id,
+          provider:         provider === 'MTN' ? 'MTN_MOMO' : 'ORANGE_MONEY',
+          senderBalanceBefore: wallet.balance,
+          senderBalanceAfter:  wallet.balance.toNumber() - amount - fee,
+        },
+      });
+    });
+
+    this.processWithdrawAsync(txn, provider, providerPhone, amount, wallet);
+
+    return { reference: ref, status: 'PROCESSING', message: 'Retrait en cours de traitement' };
   }
 
   // ── TRANSFERT : User → User (interne MoneySwift) ───────────
-  async transfer({ senderId, toPhone, amount, pin, description }) {
-    // Validation du PIN avant toute opération financière
-    await this.verifyUserPin(senderId, pin);
-
+  async transfer({ senderId, toPhone, amount, description }) {
     const senderWallet   = await this.getUserPrimaryWallet(senderId);
     const receiverWallet = await this.getWalletByPhone(toPhone);
     const fee            = calculateFee(amount, 'TRANSFER');
@@ -107,29 +86,25 @@ class TransactionService {
       throw new AppError('Solde insuffisant', 400);
     }
     if (senderWallet.id === receiverWallet.id) {
-      throw new AppError('Vous ne pouvez pas vous envoyer de l\'argent', 400);
+      throw new AppError('Impossible d\'envoyer à soi-même', 400);
     }
 
     const ref = generateRef('TRF');
 
-    // Transaction DB atomique (ACID garanti par PostgreSQL)
     const txn = await prisma.$transaction(async (tx) => {
       const sBalBefore = senderWallet.balance.toNumber();
       const rBalBefore = receiverWallet.balance.toNumber();
 
-      // Débit expéditeur
       await tx.wallet.update({
         where: { id: senderWallet.id },
         data:  { balance: { decrement: amount + fee } },
       });
 
-      // Crédit destinataire
       await tx.wallet.update({
         where: { id: receiverWallet.id },
         data:  { balance: { increment: amount } },
       });
 
-      // Enregistrement de la transaction
       return tx.transaction.create({
         data: {
           reference:            ref,
@@ -149,7 +124,6 @@ class TransactionService {
       });
     });
 
-    // Événements post-transaction (notifications, analytics)
     await EventBus.publish('transaction.success', {
       senderId,
       receiverId: receiverWallet.accountId,
@@ -161,7 +135,6 @@ class TransactionService {
     return { reference: ref, status: 'SUCCESS' };
   }
 
-  // ── HISTORIQUE paginé ──────────────────────────────────────
   async getHistory({ userId, page = 1, limit = 20, type, startDate, endDate }) {
     const wallet = await this.getUserPrimaryWallet(userId);
     const skip   = (page - 1) * limit;
@@ -179,17 +152,12 @@ class TransactionService {
 
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
-        where,
-        skip,
-        take:    limit,
+        where, skip, take: limit,
         orderBy: { initiatedAt: 'desc' },
-        select: {
-          id: true, reference: true, type: true, status: true,
-          amount: true, fee: true, description: true,
-          initiatedAt: true, completedAt: true,
-          senderWallet:   { select: { providerPhone: true, provider: true } },
-          receiverWallet: { select: { providerPhone: true, provider: true } },
-        },
+        include: {
+          senderWallet: { include: { account: { include: { user: true } } } },
+          receiverWallet: { include: { account: { include: { user: true } } } },
+        }
       }),
       prisma.transaction.count({ where }),
     ]);
@@ -198,6 +166,87 @@ class TransactionService {
       data: transactions,
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  async getStats(userId) {
+    const wallet = await this.getUserPrimaryWallet(userId);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const stats = await prisma.transaction.groupBy({
+      by: ['type'],
+      where: {
+        OR: [{ senderWalletId: wallet.id }, { receiverWalletId: wallet.id }],
+        status: 'SUCCESS',
+        initiatedAt: { gte: startOfMonth }
+      },
+      _sum: { amount: true }
+    });
+
+    return stats;
+  }
+
+  async getOne(userId, reference) {
+    const wallet = await this.getUserPrimaryWallet(userId);
+    const txn = await prisma.transaction.findFirst({
+      where: {
+        reference,
+        OR: [{ senderWalletId: wallet.id }, { receiverWalletId: wallet.id }]
+      }
+    });
+    if (!txn) throw new AppError('Transaction non trouvée', 404);
+    return txn;
+  }
+
+  // Helpers asynchrones
+  async processDepositAsync(txn, provider, providerPhone, amount, wallet) {
+    try {
+      const client = provider === 'MTN' ? MtnMomoClient : OrangeMoneyClient;
+      await client.requestToPay({ amount, phone: providerPhone, externalId: txn.reference });
+      
+      const finalStatus = await this.pollProviderStatus(client, txn.reference, 5, 10000);
+
+      if (finalStatus === 'SUCCESSFUL') {
+        await prisma.$transaction(async (tx) => {
+          await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+          await tx.transaction.update({
+            where: { id: txn.id },
+            data: { status: 'SUCCESS', completedAt: new Date(), receiverBalanceAfter: wallet.balance.toNumber() + amount }
+          });
+        });
+        await EventBus.publish('transaction.success', { userId: wallet.accountId, txnId: txn.id, type: 'DEPOSIT', amount });
+      } else {
+        await prisma.transaction.update({ where: { id: txn.id }, data: { status: 'FAILED' } });
+      }
+    } catch (error) {
+      await prisma.transaction.update({ where: { id: txn.id }, data: { status: 'FAILED', metadata: { error: error.message } } });
+    }
+  }
+
+  async processWithdrawAsync(txn, provider, providerPhone, amount, wallet) {
+    try {
+      const client = provider === 'MTN' ? MtnMomoClient : OrangeMoneyClient;
+      await client.transfer({ amount, phone: providerPhone, externalId: txn.reference });
+      
+      const finalStatus = await this.pollProviderStatus(client, txn.reference, 5, 10000);
+
+      if (finalStatus === 'SUCCESSFUL') {
+        await prisma.transaction.update({
+          where: { id: txn.id },
+          data: { status: 'SUCCESS', completedAt: new Date() }
+        });
+        await EventBus.publish('transaction.success', { userId: wallet.accountId, txnId: txn.id, type: 'WITHDRAWAL', amount });
+      } else {
+        // Reversement si échec
+        await prisma.$transaction([
+          prisma.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount + txn.fee } } }),
+          prisma.transaction.update({ where: { id: txn.id }, data: { status: 'FAILED' } })
+        ]);
+      }
+    } catch (error) {
+        // En cas d'erreur API, on laisse en PROCESSING ou on met en FAILED avec reversement
+        await prisma.transaction.update({ where: { id: txn.id }, data: { status: 'FAILED', metadata: { error: error.message } } });
+    }
   }
 
   async pollProviderStatus(client, ref, maxRetries, delay) {
@@ -221,6 +270,7 @@ class TransactionService {
   async getWalletByPhone(phone) {
     const wallet = await prisma.wallet.findFirst({
       where: { account: { user: { phoneNumber: phone } }, isPrimary: true },
+      include: { account: true }
     });
     if (!wallet) throw new AppError(`Aucun compte associé au numéro ${phone}`, 404);
     return wallet;

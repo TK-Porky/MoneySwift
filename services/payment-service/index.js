@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3005;
 
 app.listen(PORT, () => {
   console.log(`Payment Service listening on port ${PORT}`);

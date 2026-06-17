@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -189,15 +190,78 @@ model Notification {
 // ENUMS
 // ─────────────────────────────────────────────
 
-enum KycStatus        { PENDING VERIFIED REJECTED }
-enum OtpPurpose       { PHONE_VERIFICATION TRANSACTION_CONFIRM PASSWORD_RESET }
-enum AccountType      { PERSONAL BUSINESS }
-enum AccountStatus    { ACTIVE FROZEN CLOSED }
-enum WalletProvider   { MTN ORANGE MONEYSWIFT }
-enum TransactionType  { DEPOSIT WITHDRAWAL TRANSFER PAYMENT }
-enum TransactionStatus { PENDING PROCESSING SUCCESS FAILED REVERSED }
-enum ExternalProvider { MTN_MOMO ORANGE_MONEY ANGARA_PAY }
-enum CardNetwork      { VISA MASTERCARD }
-enum CardStatus       { ACTIVE FROZEN EXPIRED CANCELLED }
-enum NotificationType { TRANSACTION SECURITY PROMOTION SYSTEM }
-enum NotificationChannel { PUSH SMS EMAIL IN_APP }
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum OtpPurpose {
+  PHONE_VERIFICATION
+  TRANSACTION_CONFIRM
+  PASSWORD_RESET
+}
+
+enum AccountType {
+  PERSONAL
+  BUSINESS
+}
+
+enum AccountStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum WalletProvider {
+  MTN
+  ORANGE
+  MONEYSWIFT
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  PAYMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum ExternalProvider {
+  MTN_MOMO
+  ORANGE_MONEY
+  ANGARA_PAY
+}
+
+enum CardNetwork {
+  VISA
+  MASTERCARD
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationType {
+  TRANSACTION
+  SECURITY
+  PROMOTION
+  SYSTEM
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+  IN_APP
+}
