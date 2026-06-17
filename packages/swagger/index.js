@@ -1,4 +1,5 @@
 const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
 
 const options = {
   definition: {
@@ -154,8 +155,8 @@ const options = {
   },
   // Chemins vers les fichiers contenant les annotations JSDoc
   apis: [
-    './services/*/src/routes/*.routes.js',
-    './services/*/src/routes/*.router.js',
+    path.join(__dirname, '../../services/*/src/routes/*.routes.js').replace(/\\/g, '/'),
+    path.join(__dirname, '../../services/*/src/routes/*.router.js').replace(/\\/g, '/'),
   ],
 };
 
