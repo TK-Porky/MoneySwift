@@ -1,0 +1,23 @@
+{
+    "name": "@moneyswift/transaction-service",
+    "version": "1.0.0",
+    "description": "Service for managing transactions in MoneySwift",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "@prisma/client": "^4.0.0",
+        "express": "^4.17.1",
+        "dotenv": "^10.0.0",
+        "@moneyswift/database": "workspace:*",
+        "@moneyswift/errors": "workspace:*",
+        "@moneyswift/middleware": "workspace:*",
+        "@moneyswift/utils": "workspace:*",
+        "@moneyswift/events": "workspace:*"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.7"
+    }
+}

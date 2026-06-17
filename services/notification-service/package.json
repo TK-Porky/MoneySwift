@@ -1,0 +1,21 @@
+{
+    "name": "@moneyswift/notification-service",
+    "version": "1.0.0",
+    "description": "Service for sending notifications in MoneySwift",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js"
+    },
+    "dependencies": {
+        "express": "^4.17.1",
+        "dotenv": "^10.0.0",
+        "@moneyswift/database": "workspace:*",
+        "@moneyswift/errors": "workspace:*",
+        "@moneyswift/middleware": "workspace:*",
+        "@moneyswift/events": "workspace:*"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.7"
+    }
+}

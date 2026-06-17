@@ -1,0 +1,5 @@
+{
+  "name": "@moneyswift/events",
+  "version": "1.0.0",
+  "main": "event-bus.js"
+}
