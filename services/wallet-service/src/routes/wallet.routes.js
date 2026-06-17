@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const walletController = require('../controllers/wallet.controller');
 const { authenticate, validate } = require('@moneyswift/middleware');
-const { linkWalletSchema } = require('../validators/wallet.validators');
+const { linkOperatorSchema } = require('../validators/wallet.validators');
 
 /**
  * @swagger
@@ -81,6 +81,6 @@ router.get('/', walletController.getWallets);
  *       409:
  *         description: Ce numéro est déjà lié
  */
-router.post('/link', validate(linkWalletSchema), walletController.linkWallet);
+router.post('/link', validate(linkOperatorSchema), walletController.linkWallet);
 
 module.exports = router;

@@ -14,7 +14,7 @@ exports.getBalance = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: result });
 });
 
-exports.linkOperator = asyncHandler(async (req, res) => {
+exports.linkWallet = asyncHandler(async (req, res) => {
   const result = await walletService.linkOperator(req.user.id, req.body);
   res.status(201).json({ success: true, data: result });
 });
