@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  web:
+    build: ./apps/web
+    ports:
+      - "3000:3000"
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3001:3000"
