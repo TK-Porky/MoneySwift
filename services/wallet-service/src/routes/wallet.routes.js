@@ -83,4 +83,23 @@ router.get('/', walletController.getWallets);
  */
 router.post('/link', validate(linkOperatorSchema), walletController.linkWallet);
 
+/**
+ * @swagger
+ * /wallets/{id}:
+ *   delete:
+ *     summary: Délier un numéro (supprimer le wallet associé)
+ *     tags: [Wallets]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Opérateur délié avec succès
+ *       404:
+ *         description: Wallet non trouvé
+ */
+router.delete('/:id', walletController.unlinkOperator);
+
 module.exports = router;
