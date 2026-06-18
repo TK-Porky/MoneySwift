@@ -1,19 +1,17 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
 RUN npm install -g pnpm
 RUN apk add --no-cache openssl libc6-compat
+
+FROM base AS builder
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
+RUN pnpm --filter=@moneyswift/account-service --prod deploy --legacy /app/deployed
 
-FROM node:20-alpine AS runner
-WORKDIR /app
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/services/account-service ./services/account-service
-COPY --from=builder /app/package.json ./package.json
-
-WORKDIR /app/services/account-service
+FROM base AS runner
+WORKDIR /app/deployed
+COPY --from=builder /app/deployed ./
 ENV NODE_ENV=production
 EXPOSE 3002
 CMD ["node", "index.js"]
