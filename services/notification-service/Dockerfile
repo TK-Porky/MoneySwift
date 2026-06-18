@@ -22,7 +22,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts=false
 # 3. Copy shared packages source
 COPY packages/ ./packages/
 
-FROM base AS builder
+FROM deps AS builder
 WORKDIR /app
 # 4. Generate Prisma Client (critical step)
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/placeholder"
