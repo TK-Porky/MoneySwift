@@ -1,0 +1,120 @@
+services:
+  # ── Base de données PostgreSQL (Managée) ──────────────────
+  - type: database
+    name: moneyswift-db
+    databaseName: moneyswift
+    user: ms_user
+    plan: free
+
+  # ── Redis pour le bus d'événements ────────────────────────
+  - type: redis
+    name: moneyswift-redis
+    plan: free
+    ipAllowList: [] # Accès interne uniquement
+
+  # ── Microservice : Auth ──────────────────────────────────
+  - type: pweb
+    name: auth-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: services/auth-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moneyswift-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: moneyswift-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+  # ── Microservice : Account ────────────────────────────────
+  - type: pweb
+    name: account-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: services/account-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3002
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moneyswift-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: moneyswift-redis
+          property: connectionString
+
+  # ── Microservice : Wallet ─────────────────────────────────
+  - type: pweb
+    name: wallet-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: services/wallet-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3003
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moneyswift-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: moneyswift-redis
+          property: connectionString
+
+  # ── Microservice : Transaction ────────────────────────────
+  - type: pweb
+    name: transaction-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: services/transaction-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3004
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moneyswift-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: moneyswift-redis
+          property: connectionString
+
+  # ── Microservice : Card ───────────────────────────────────
+  - type: pweb
+    name: card-service
+    env: docker
+    dockerContext: .
+    dockerfilePath: services/card-service/Dockerfile
+    envVars:
+      - key: PORT
+        value: 3006
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moneyswift-db
+          property: connectionString
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+  # ── Gateway Nginx ─────────────────────────────────────────
+  - type: web
+    name: api-gateway
+    env: docker
+    dockerContext: .
+    dockerfilePath: apps/gateway/Dockerfile
+    plan: free
+    envVars:
+      - key: PORT
+        value: 80
