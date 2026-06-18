@@ -1,22 +1,21 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine AS builder
 RUN npm install -g pnpm
 RUN apk add --no-cache openssl libc6-compat
-
-FROM base AS builder
 WORKDIR /app
 COPY . .
-# On installe tout d'abord pour générer le dossier node_modules correct
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
+# On supprime les dépendances de dev pour alléger l'image
+RUN pnpm prune --prod
 
-# La commande deploy crée un dossier autonome avec TOUTES les dépendances (inclus @moneyswift/*)
-# Le flag --legacy est nécessaire pour pnpm v10 si l'injection n'est pas par projet
-RUN pnpm --filter=@moneyswift/auth-service --prod deploy --legacy /app/deployed
+FROM node:20-alpine AS runner
+WORKDIR /app
+# On copie TOUT le projet (qui est maintenant léger grâce au prune)
+# Cela préserve la structure /packages, /services, /node_modules
+COPY --from=builder /app ./
 
-FROM base AS runner
-WORKDIR /app/deployed
-# On ne copie QUE le dossier autonome généré par pnpm deploy
-COPY --from=builder /app/deployed ./
+# On se place dans le service pour l'exécution
+WORKDIR /app/services/auth-service
 ENV NODE_ENV=production
 EXPOSE 3001
 CMD ["node", "index.js"]
