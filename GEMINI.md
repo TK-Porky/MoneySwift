@@ -13,6 +13,7 @@ Stack Technique :
 - Backend : Architecture microservices avec Node.js/Express.
 - Base de données : PostgreSQL centralisé, géré par Prisma ORM.
 - Infrastructure : Gateway Nginx, Docker Compose pour le dev local, Redis pour le bus d'événements.
+- Spécificités Render : Pour éviter les erreurs 502 Bad Gateway avec les URLs publiques, le resolver Nginx doit avoir `ipv6=off` et les buffers doivent être augmentés pour Swagger.
 
 2. Architecture du Monorepo
    Il est CRITIQUE de respecter la séparation des préoccupations :
