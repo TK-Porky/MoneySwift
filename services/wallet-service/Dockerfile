@@ -1,19 +1,19 @@
-FROM node:20-alpine AS base
+FROM node:20-alpine AS builder
 RUN npm install -g pnpm
-# Install runtime/build dependencies for Prisma on Alpine
 RUN apk add --no-cache openssl libc6-compat
-
-FROM base AS builder
 WORKDIR /app
 COPY . .
-RUN pnpm install --frozen-lockfile --ignore-scripts=false
-ENV DATABASE_URL="postgresql://build:build@localhost:5432/placeholder"
+RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
-RUN pnpm --filter=@moneyswift/wallet-service --prod deploy --legacy /app/deployed
 
-FROM base AS runner
-WORKDIR /app/deployed
-COPY --from=builder /app/deployed ./
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/services/wallet-service ./services/wallet-service
+COPY --from=builder /app/package.json ./package.json
+
+WORKDIR /app/services/wallet-service
 ENV NODE_ENV=production
 EXPOSE 3003
 CMD ["node", "index.js"]
