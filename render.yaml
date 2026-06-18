@@ -1,11 +1,10 @@
-services:
-  # ── Base de données PostgreSQL (Managée) ──────────────────
-  - type: database
-    name: moneyswift-db
+databases:
+  - name: moneyswift-db
     databaseName: moneyswift
     user: ms_user
     plan: free
 
+services:
   # ── Redis pour le bus d'événements ────────────────────────
   - type: redis
     name: moneyswift-redis
