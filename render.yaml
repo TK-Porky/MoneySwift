@@ -12,8 +12,9 @@ services:
     ipAllowList: [] # Accès interne uniquement
 
   # ── Microservice : Auth ──────────────────────────────────
-  - type: pserv
+  - type: web
     name: auth-service
+    plan: free
     env: docker
     dockerContext: .
     dockerfilePath: services/auth-service/Dockerfile
@@ -35,8 +36,9 @@ services:
         generateValue: true
 
   # ── Microservice : Account ────────────────────────────────
-  - type: pserv
+  - type: web
     name: account-service
+    plan: free
     env: docker
     dockerContext: .
     dockerfilePath: services/account-service/Dockerfile
@@ -54,8 +56,9 @@ services:
           property: connectionString
 
   # ── Microservice : Wallet ─────────────────────────────────
-  - type: pserv
+  - type: web
     name: wallet-service
+    plan: free
     env: docker
     dockerContext: .
     dockerfilePath: services/wallet-service/Dockerfile
@@ -73,8 +76,9 @@ services:
           property: connectionString
 
   # ── Microservice : Transaction ────────────────────────────
-  - type: pserv
+  - type: web
     name: transaction-service
+    plan: free
     env: docker
     dockerContext: .
     dockerfilePath: services/transaction-service/Dockerfile
@@ -92,8 +96,9 @@ services:
           property: connectionString
 
   # ── Microservice : Card ───────────────────────────────────
-  - type: pserv
+  - type: web
     name: card-service
+    plan: free
     env: docker
     dockerContext: .
     dockerfilePath: services/card-service/Dockerfile
