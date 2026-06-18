@@ -3,43 +3,17 @@ RUN npm install -g pnpm
 # Install runtime/build dependencies for Prisma on Alpine
 RUN apk add --no-cache openssl libc6-compat
 
-FROM base AS deps
+FROM base AS builder
 WORKDIR /app
-# 1. Copy only manifest files first
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
-COPY packages/database/package.json ./packages/database/
-COPY packages/errors/package.json ./packages/errors/
-COPY packages/events/package.json ./packages/events/
-COPY packages/middleware/package.json ./packages/middleware/
-COPY packages/utils/package.json ./packages/utils/
-COPY packages/integrations/package.json ./packages/integrations/
-COPY services/account-service/package.json ./services/account-service/
-
-# 2. Install dependencies (may fail build scripts if pnpm-lock is missing, but should work)
-# --ignore-scripts=false force pnpm à exécuter les postinstall
+COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts=false
-
-# 3. Copy shared packages source
-COPY packages/ ./packages/
-
-FROM deps AS builder
-WORKDIR /app
-# 4. Generate Prisma Client (critical step)
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/placeholder"
-RUN ./node_modules/.bin/prisma generate --schema=packages/database/prisma/schema.prisma
-
-# 5. Copy the specific service source
-COPY services/account-service/ ./services/account-service/
+RUN pnpm db:generate
+RUN pnpm --filter=@moneyswift/account-service --prod deploy --legacy /app/deployed
 
 FROM base AS runner
-WORKDIR /app
-# Copy built artifacts
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/services/account-service ./services/account-service
-COPY --from=builder /app/package.json ./package.json
-
-WORKDIR /app/services/account-service
+WORKDIR /app/deployed
+COPY --from=builder /app/deployed ./
 ENV NODE_ENV=production
 EXPOSE 3002
 CMD ["node", "index.js"]

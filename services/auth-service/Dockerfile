@@ -9,7 +9,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile --ignore-scripts=false
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/placeholder"
 RUN pnpm db:generate
-RUN pnpm --filter=@moneyswift/auth-service --prod deploy /app/deployed
+RUN pnpm --filter=@moneyswift/auth-service --prod deploy --legacy /app/deployed
 
 FROM base AS runner
 WORKDIR /app/deployed
