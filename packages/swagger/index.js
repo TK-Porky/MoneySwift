@@ -18,6 +18,7 @@ const options = {
       },
     },
     servers: [
+      { url: '/api/v1',                      description: 'Gateway (Relative)' },
       { url: 'http://localhost:80/api/v1',  description: 'Gateway local (dev)' },
       { url: 'http://localhost:3001',        description: 'Auth Service direct' },
       { url: 'http://localhost:3002',        description: 'Account Service direct' },
