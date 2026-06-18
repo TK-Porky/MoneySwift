@@ -1,6 +1,7 @@
 FROM node:20-alpine AS builder
 RUN npm install -g pnpm
 RUN apk add --no-cache openssl libc6-compat
+ENV CI=true
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
