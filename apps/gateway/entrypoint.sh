@@ -1,9 +1,13 @@
 #!/bin/sh
 set -e
 
-# Extraire le premier nameserver de /etc/resolv.conf
-# On utilise sed pour être sûr de ne récupérer que l'IP
-RESOLVER_IP=$(grep nameserver /etc/resolv.conf | head -n 1 | awk '{print $2}')
+# Extraire l'IP du nameserver de manière plus simple
+RESOLVER_IP=$(grep nameserver /etc/resolv.conf | head -n 1 | cut -d' ' -f2)
+
+# Si vide, on utilise Google DNS comme fallback
+if [ -z "$RESOLVER_IP" ]; then
+    RESOLVER_IP="8.8.8.8"
+fi
 
 echo "DNS Resolver detected: $RESOLVER_IP"
 
