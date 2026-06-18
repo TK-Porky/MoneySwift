@@ -1,11 +1,19 @@
 const crypto = require('crypto');
 
 const ALGORITHM = 'aes-256-gcm';
-const KEY       = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // 32 bytes
+
+function getKey() {
+  const keyHex = process.env.ENCRYPTION_KEY;
+  if (!keyHex) {
+    throw new Error('ENCRYPTION_KEY is not defined in environment variables');
+  }
+  return Buffer.from(keyHex, 'hex');
+}
 
 function encrypt(text) {
+  const key        = getKey();
   const iv         = crypto.randomBytes(16);
-  const cipher     = crypto.createCipheriv(ALGORITHM, KEY, iv);
+  const cipher     = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted  = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
   const authTag    = cipher.getAuthTag();
   // Format: iv:authTag:ciphertext (tout en hex)
@@ -13,8 +21,9 @@ function encrypt(text) {
 }
 
 function decrypt(stored) {
+  const key = getKey();
   const [ivHex, tagHex, dataHex] = stored.split(':');
-  const decipher = crypto.createDecipheriv(ALGORITHM, KEY, Buffer.from(ivHex, 'hex'));
+  const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(ivHex, 'hex'));
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
   return Buffer.concat([
     decipher.update(Buffer.from(dataHex, 'hex')),

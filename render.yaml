@@ -34,6 +34,8 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
 
   # ── Microservice : Account ────────────────────────────────
   - type: web
@@ -54,6 +56,8 @@ services:
           type: redis
           name: moneyswift-redis
           property: connectionString
+      - key: ENCRYPTION_KEY
+        generateValue: true
 
   # ── Microservice : Wallet ─────────────────────────────────
   - type: web
@@ -74,6 +78,8 @@ services:
           type: redis
           name: moneyswift-redis
           property: connectionString
+      - key: ENCRYPTION_KEY
+        generateValue: true
 
   # ── Microservice : Transaction ────────────────────────────
   - type: web
@@ -94,6 +100,8 @@ services:
           type: redis
           name: moneyswift-redis
           property: connectionString
+      - key: ENCRYPTION_KEY
+        generateValue: true
 
   # ── Microservice : Card ───────────────────────────────────
   - type: web
