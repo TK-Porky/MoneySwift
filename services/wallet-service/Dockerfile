@@ -6,7 +6,6 @@ WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
-RUN pnpm prune --prod
 
 WORKDIR /app/services/wallet-service
 ENV NODE_ENV=production
