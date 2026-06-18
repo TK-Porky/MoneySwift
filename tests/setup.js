@@ -1,7 +1,14 @@
-import { vi } from 'vitest';
-import path from 'path';
+// tests/setup.js
+import { vi, beforeEach } from 'vitest';
 
-// Mock global de l'EventBus (pas de Redis dans les tests)
+// Variables d'environnement
+process.env.NODE_ENV           = 'test';
+process.env.JWT_SECRET         = 'test_jwt_secret_min_32_characters_ok';
+process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_min_32_chars_ok';
+process.env.ENCRYPTION_KEY     = '4d6f6e65795377696674456e6372797074696f6e4b657931323334353637383930';
+process.env.DATABASE_URL       = 'postgresql://ms_user:ms_secret@localhost:5432/moneyswift_test';
+
+// Mock global EventBus
 vi.mock('@moneyswift/events', () => ({
   default: {
     publish:   vi.fn().mockResolvedValue(true),
@@ -9,8 +16,7 @@ vi.mock('@moneyswift/events', () => ({
   },
 }));
 
-// Mock global de Prisma (@moneyswift/database)
-// Les variables utilisées dans vi.mock doivent commencer par 'mock'
+// Mock global Prisma (@moneyswift/database)
 const mockPrisma = {
   user: {
     findUnique:  vi.fn(),
@@ -73,26 +79,27 @@ const mockPrisma = {
     delete:      vi.fn(),
     count:       vi.fn(),
   },
-  $transaction: vi.fn((callback) => callback(mockPrisma)),
+  $transaction: vi.fn((callback) => {
+    if (typeof callback === 'function') {
+      return callback(mockPrisma);
+    }
+    return Promise.resolve(callback);
+  }),
 };
 
-vi.mock('@moneyswift/database', () => {
-  return {
-    prisma: mockPrisma,
-    default: mockPrisma,
-  };
-});
+// Singleton pour les tests
+mockPrisma.prisma = mockPrisma;
 
-// Mock global du SMS provider
-vi.mock('@moneyswift/integrations/sms', () => ({
-  SmsProvider: {
-    send: vi.fn().mockResolvedValue({ success: true, messageId: 'test-msg-id' }),
-  },
+vi.mock('@moneyswift/database', () => ({
+  __esModule: true,
+  ...mockPrisma,
+  prisma: mockPrisma,
+  default: mockPrisma,
 }));
 
-// Variables d'environnement de test
-process.env.NODE_ENV        = 'test';
-process.env.JWT_SECRET      = 'test_jwt_secret_min_32_characters_ok';
-process.env.JWT_REFRESH_SECRET = 'test_refresh_secret_min_32_chars_ok';
-process.env.ENCRYPTION_KEY  = '4d6f6e65795377696674456e6372797074696f6e4b657931323334353637383930';
-process.env.DATABASE_URL    = 'postgresql://ms_user:ms_secret@localhost:5432/moneyswift_test';
+// Mock global SmsProvider
+vi.mock('@moneyswift/integrations', () => ({
+  SmsProvider: {
+    send: vi.fn().mockResolvedValue({ success: true, messageId: 'test-id' }),
+  },
+}));

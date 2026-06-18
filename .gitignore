@@ -10,6 +10,9 @@ out/
 .expo/
 dist/
 
+# tests
+coverage/
+
 # production
 build
 /services/**/dist

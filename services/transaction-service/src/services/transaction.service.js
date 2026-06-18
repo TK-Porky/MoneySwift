@@ -1,6 +1,6 @@
 // services/transaction-service/src/services/transaction.service.js
 
-const prisma      = require('@moneyswift/database');
+let prisma      = require('@moneyswift/database');
 const { calculateFee, generateRef } = require('@moneyswift/utils');
 const { MtnMomoClient, OrangeMoneyClient } = require('@moneyswift/integrations');
 const EventBus    = require('@moneyswift/events');
@@ -277,4 +277,6 @@ class TransactionService {
   }
 }
 
-module.exports = new TransactionService();
+const instance = new TransactionService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };

@@ -9,27 +9,29 @@
     "packages/*"
   ],
   "scripts": {
-    "dev":         "turbo run dev",
-    "build":       "turbo run build",
-    "test":          "vitest run",
-    "test:watch":    "vitest",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui":       "vitest --ui",
-    "lint":        "turbo run lint",
+    "test:ui": "vitest --ui",
+    "lint": "turbo run lint",
     "db:generate": "prisma generate --schema=packages/database/prisma/schema.prisma",
-    "db:push":     "prisma db push --schema=packages/database/prisma/schema.prisma",
-    "db:migrate":  "prisma migrate dev --schema=packages/database/prisma/schema.prisma",
-    "db:seed":     "node packages/database/prisma/seed.js",
-    "db:studio":   "prisma studio --schema=packages/database/prisma/schema.prisma",
-    "db:reset":    "prisma migrate reset --schema=packages/database/prisma/schema.prisma"
+    "db:push": "prisma db push --schema=packages/database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=packages/database/prisma/schema.prisma",
+    "db:seed": "node packages/database/prisma/seed.js",
+    "db:studio": "prisma studio --schema=packages/database/prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --schema=packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
-    "turbo": "latest",
+    "@prisma/client": "^5.22.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@vitest/ui": "^1.6.1",
     "prisma": "5.22.0",
+    "supertest": "^7.0.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "vitest": "^1.6.0",
-    "@vitest/coverage-v8": "^1.6.0",
-    "supertest": "^7.0.0"
+    "turbo": "latest",
+    "vitest": "^1.6.0"
   }
 }

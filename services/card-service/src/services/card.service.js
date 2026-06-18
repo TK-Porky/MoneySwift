@@ -1,6 +1,6 @@
 const crypto  = require('crypto');
 const bcrypt  = require('bcrypt');
-const prisma  = require('@moneyswift/database');
+let prisma  = require('@moneyswift/database');
 const { encrypt, decrypt } = require('@moneyswift/utils');
 const AppError = require('@moneyswift/errors/AppError');
 
@@ -161,4 +161,6 @@ class CardService {
   }
 }
 
-module.exports = new CardService();
+const instance = new CardService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };

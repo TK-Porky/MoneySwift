@@ -1,8 +1,8 @@
 // services/notification-service/src/services/notification.service.js
 
 const EventBus = require('@moneyswift/events');
-const prisma   = require('@moneyswift/database');
-const { SmsProvider } = require('@moneyswift/integrations');
+let prisma   = require('@moneyswift/database');
+let { SmsProvider } = require('@moneyswift/integrations');
 const AppError = require('@moneyswift/errors/AppError');
 
 class NotificationService {
@@ -96,4 +96,7 @@ class NotificationService {
   }
 }
 
-module.exports = new NotificationService();
+const instance = new NotificationService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };
+module.exports.__setSmsProvider = (s) => { SmsProvider = s; };

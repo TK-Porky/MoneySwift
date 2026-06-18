@@ -1,4 +1,4 @@
-const prisma = require('@moneyswift/database');
+let prisma = require('@moneyswift/database');
 const AppError = require('@moneyswift/errors/AppError');
 
 class WalletService {
@@ -31,7 +31,7 @@ class WalletService {
     };
   }
 
-  async linkOperator(userId, { provider, providerPhone }) {
+  async linkOperator({ userId, provider, providerPhone }) {
     const account = await this.getUserAccount(userId);
     
     // Vérifier si un wallet pour ce provider existe déjà
@@ -54,7 +54,7 @@ class WalletService {
     });
   }
 
-  async unlinkOperator(userId, walletId) {
+  async unlinkOperator({ userId, walletId }) {
     const account = await this.getUserAccount(userId);
     const wallet = await prisma.wallet.findFirst({
       where: { id: walletId, accountId: account.id }
@@ -74,4 +74,6 @@ class WalletService {
   }
 }
 
-module.exports = new WalletService();
+const instance = new WalletService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };

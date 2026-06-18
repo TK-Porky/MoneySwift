@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt    = require('jsonwebtoken');
-const prisma = require('@moneyswift/database');
+let prisma = require('@moneyswift/database');
 const { generateOtp, hashOtp, verifyOtp } = require('@moneyswift/utils');
-const { SmsProvider } = require('@moneyswift/integrations');
+let { SmsProvider } = require('@moneyswift/integrations');
 const AppError = require('@moneyswift/errors/AppError');
 
 class AuthService {
@@ -181,4 +181,9 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
+const instance = new AuthService();
+
+// Test helper: allow injecting a mocked prisma instance from tests
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };
+module.exports.__setSmsProvider = (s) => { SmsProvider = s; };

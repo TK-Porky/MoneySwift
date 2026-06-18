@@ -1,5 +1,5 @@
-const prisma = require('@moneyswift/database');
-const { AngaraPayClient } = require('@moneyswift/integrations');
+let prisma = require('@moneyswift/database');
+let { AngaraPayClient } = require('@moneyswift/integrations');
 const EventBus = require('@moneyswift/events');
 const AppError = require('@moneyswift/errors/AppError');
 
@@ -77,4 +77,7 @@ class PaymentService {
   }
 }
 
-module.exports = new PaymentService();
+const instance = new PaymentService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };
+module.exports.__setAngaraPayClient = (c) => { AngaraPayClient = c; };

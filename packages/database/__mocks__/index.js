@@ -1,8 +1,6 @@
-import { vi } from 'vitest';
+const { vi } = require('vitest');
 
-console.log('LOADING PRISMA MOCK FROM ADJACENT FOLDER');
-
-export const prisma = {
+const prisma = {
   user: {
     findUnique:  vi.fn(),
     findFirst:   vi.fn(),
@@ -33,6 +31,7 @@ export const prisma = {
     findMany:    vi.fn(),
     create:      vi.fn(),
     update:      vi.fn(),
+    delete:      vi.fn(),
   },
   transaction: {
     findUnique:  vi.fn(),
@@ -67,4 +66,7 @@ export const prisma = {
   $transaction: vi.fn((callback) => callback(prisma)),
 };
 
-export default prisma;
+// Compatible require et import
+module.exports = prisma;
+module.exports.default = prisma;
+module.exports.prisma = prisma;

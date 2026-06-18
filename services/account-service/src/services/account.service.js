@@ -1,4 +1,4 @@
-const prisma = require('@moneyswift/database');
+let prisma = require('@moneyswift/database');
 const AppError = require('@moneyswift/errors');
 
 class AccountService {
@@ -61,4 +61,6 @@ class AccountService {
   }
 }
 
-module.exports = new AccountService();
+const instance = new AccountService();
+module.exports = instance;
+module.exports.__setPrisma = (p) => { prisma = p; };
