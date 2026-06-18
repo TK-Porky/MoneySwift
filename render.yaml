@@ -116,7 +116,7 @@ services:
   - type: web
     name: api-gateway
     env: docker
-    dockerContext: .
+    dockerContext: apps/gateway
     dockerfilePath: apps/gateway/Dockerfile
     plan: free
     envVars:
