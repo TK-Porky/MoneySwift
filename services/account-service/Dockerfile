@@ -7,7 +7,6 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
 
-WORKDIR /app/services/account-service
 ENV NODE_ENV=production
 EXPOSE 3002
-CMD ["node", "index.js"]
+CMD ["node", "services/account-service/index.js"]

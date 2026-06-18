@@ -7,7 +7,6 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
 
-WORKDIR /app/services/wallet-service
 ENV NODE_ENV=production
 EXPOSE 3003
-CMD ["node", "index.js"]
+CMD ["node", "services/wallet-service/index.js"]

@@ -7,7 +7,6 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
 
-WORKDIR /app/services/transaction-service
 ENV NODE_ENV=production
 EXPOSE 3004
-CMD ["node", "index.js"]
+CMD ["node", "services/transaction-service/index.js"]

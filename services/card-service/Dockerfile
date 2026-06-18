@@ -7,7 +7,6 @@ COPY . .
 RUN pnpm install --frozen-lockfile
 RUN pnpm db:generate
 
-WORKDIR /app/services/card-service
 ENV NODE_ENV=production
 EXPOSE 3006
-CMD ["node", "index.js"]
+CMD ["node", "services/card-service/index.js"]
